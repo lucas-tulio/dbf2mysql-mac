@@ -21,8 +21,9 @@ STRIP=
 #STRIP=-s
 
 # Set this to your MySQL installation-path
-MYSQLINC=-I/usr/include/mysql
-MYSQLLIB=-L/usr/lib/mysql
+MYSQLINC=-I/Users/___username___/homebrew/Cellar/mysql/___version___/include/mysql
+MYSQLLIB=-L/Users/___username___/homebrew/Cellar/mysql/___version___/lib
+
 
 # Set this to where you want the binary (no man-page yet, don't know
 # how to write them)
