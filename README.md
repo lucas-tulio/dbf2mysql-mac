@@ -15,11 +15,7 @@ Some fixes to make dbf2mysql compilable with Mac OS X. Based on this project: ht
 
 1. Run `make`
 
----
-
-Original README file
-
----
+### Original README file
 
 dbf2mysql v1.14
 Patched and enchanted to mysql by Michael Widenius
