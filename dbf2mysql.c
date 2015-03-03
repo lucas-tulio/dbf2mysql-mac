@@ -19,7 +19,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <ctype.h>
-#include <mysql.h>
+#include "mysql.h"
 #include "dbf.h"
 
 int verbose = 0, upper = 0, lower = 0, create = 0, fieldlow = 0, var_chars = 1;
