@@ -23,18 +23,18 @@ char	*table = NULL;
 char    *pass = NULL;
 char    *user = NULL;
 
-inline void strtoupper(char *string);
-inline void strtolower(char *string);
+void strtoupper(char *string);
+void strtolower(char *string);
 void usage(void);
 
-inline void strtoupper(char *string) {
+void strtoupper(char *string) {
         while(*string != '\0') {
                 *string = toupper(*string);
 		string++;
         }
 }
 
-inline void strtolower(char *string) {
+void strtolower(char *string) {
         while(*string != '\0') {
                 *string = tolower(*string);
 		string++;

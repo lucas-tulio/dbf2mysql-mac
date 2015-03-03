@@ -39,21 +39,21 @@ char *convert = NULL;
 
 void do_onlyfields(char *flist, dbhead *dbh);
 void do_substitute(char *subarg, dbhead *dbh);
-inline void strtoupper(char *string);
-inline void strtolower(char *string);
+void strtoupper(char *string);
+void strtolower(char *string);
 void do_create(MYSQL *, char*, dbhead*, char *charset);
 void do_inserts(MYSQL *, char*, dbhead*);
 int check_table(MYSQL *, char*);
 void usage(void);
 
-inline void strtoupper(char *string) {
+void strtoupper(char *string) {
     while (*string != '\0') {
         *string = toupper(*string);
         string++;
     }
 }
 
-inline void strtolower(char *string) {
+void strtolower(char *string) {
     while (*string != '\0') {
         *string = tolower(*string);
         string++;
