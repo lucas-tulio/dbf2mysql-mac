@@ -38,10 +38,11 @@ char *indexes = NULL;
 char *convert = NULL;
 
 void do_onlyfields(char *flist, dbhead *dbh);
-void do_substitute(char *subarg, dbhead *dbh);
+void do_prep_mysql(dbhead *dbh, MYSQL_FIELD **myfields);
+void do_substitute(char *subarg, dbhead *dbh, MYSQL_FIELD *myfields);
 void strtoupper(char *string);
 void strtolower(char *string);
-void do_create(MYSQL *, char*, dbhead*, char *charset);
+void do_create(MYSQL *, char*, dbhead*, char *charset, MYSQL_FIELD *);
 void do_inserts(MYSQL *, char*, dbhead*);
 int check_table(MYSQL *, char*);
 void usage(void);
@@ -123,13 +124,31 @@ void do_onlyfields(char *flist, dbhead *dbh) {
     free(flist2);
 } /* do_onlyfields */
 
+void do_prep_mysql(dbhead *dbh, MYSQL_FIELD **myfields) {
+  int i;
+  MYSQL_FIELD *this_field;
+
+  *myfields = (MYSQL_FIELD *) calloc(dbh->db_nfields, sizeof(MYSQL_FIELD));
+
+  if (verbose > 2) {
+    fprintf(stderr, "Prep MySQL field names\n");
+  }
+
+  for (i = 0; i < dbh->db_nfields; i++) {
+    this_field = (*myfields) + i;
+    this_field->name = dbh->db_fields[i].db_name;
+    this_field->type = dbh->db_fields[i].db_type; /* not a true conversion */
+    this_field->length = dbh->db_fields[i].db_flen;
+  }
+}
+
 /* patch submitted by Jeffrey Y. Sue <jysue@aloha.net> */
 /* Provides functionallity for substituting dBase-fieldnames for others */
 /* Mainly for avoiding conflicts between fieldnames and MySQL-reserved */
 
 /* keywords */
 
-void do_substitute(char *subarg, dbhead *dbh) {
+void do_substitute(char *subarg, dbhead *dbh, MYSQL_FIELD *myfields) {
     /* NOTE: subarg is modified in this function */
     int i, bad;
     char *p, *oldname, *newname;
@@ -150,19 +169,26 @@ void do_substitute(char *subarg, dbhead *dbh) {
                 p++; /* point past where the comma was */
             }
         }
-        if (strlen(newname) >= DBF_NAMELEN) {
-            printf("Truncating new field name %s to %d chars\n",
-                    newname, DBF_NAMELEN - 1);
-            newname[DBF_NAMELEN - 1] = '\0';
-        }
+        /* if (strlen(newname) >= DBF_NAMELEN) { */
+        /*     fprintf(stderr, "Truncating new field name %s to %d chars\n", */
+        /*             newname, DBF_NAMELEN - 1); */
+        /*     newname[DBF_NAMELEN - 1] = '\0'; */
+        /* } */
         bad = 1;
         for (i = 0; i < dbh->db_nfields; i++) {
             if (strcmp(dbh->db_fields[i].db_name, oldname) == 0) {
                 bad = 0;
-                strcpy(dbh->db_fields[i].db_name, newname);
+                myfields[i].name = newname;
+                if (newname[0] == '\0') { /* do_inserts() looks at the db_name to use/skip */
+                  dbh->db_fields[i].db_name[0] = '\0';
+                }
                 if (verbose > 1) {
-                    printf("Substitute old:%s new:%s\n",
-                            oldname, newname);
+                    fprintf(stderr, "Substitute old:%-*s", DBF_NAMELEN, oldname);
+                    if (strlen(newname)) {
+                      fprintf(stderr, "new:%s\n", newname);
+                    } else {
+                      fprintf(stderr, "(skip)\n");
+                    }
                 }
                 break;
             }
@@ -175,19 +201,22 @@ void do_substitute(char *subarg, dbhead *dbh) {
     }
 } /* do_substitute */
 
-void do_create(MYSQL *SQLsock, char *table, dbhead *dbh, char *charset) {
+void do_create(MYSQL *SQLsock, char *table, dbhead *dbh, char *charset, MYSQL_FIELD *myfields) {
     /* Patched by GLC to support date and boolean fields */
     /* Patched by WKV to support Visual FoxPro fields */
     char *query, *s;
+    size_t qsize;
     char t[20];
     int i, first_done;
 
     if (verbose > 2) {
-        printf("Building CREATE-clause\n");
+        fprintf(stderr, "Building CREATE-clause\n");
     }
-
-    if (!(query = (char *) malloc((express * 100) +
-            (dbh->db_nfields * 60) + 29 + strlen(table)))) {
+    qsize = (express * 100) + (dbh->db_nfields * 60) + 29 + strlen(table);
+    for (i = 0; i < dbh->db_nfields; i++) {
+      qsize += strlen(myfields[i].name) + 1;
+    }
+    if (!(query = (char *) malloc(qsize))) {
         fprintf(stderr, "Memory allocation error in function do_create\n");
         mysql_close(SQLsock);
         dbf_close(&dbh);
@@ -202,7 +231,7 @@ void do_create(MYSQL *SQLsock, char *table, dbhead *dbh, char *charset) {
     }
     first_done = 0;
     for (i = 0; i < dbh->db_nfields; i++) {
-        if (!strlen(dbh->db_fields[i].db_name)) {
+        if (myfields[i].name == NULL || !strlen(myfields[i].name)) {
             continue;
             /* skip field if length of name == 0 */
         }
@@ -211,10 +240,10 @@ void do_create(MYSQL *SQLsock, char *table, dbhead *dbh, char *charset) {
         }
         first_done = 1;
         if (fieldlow)
-            strtolower(dbh->db_fields[i].db_name);
+            strtolower(myfields[i].name);
 
         strcat(query, "`\0");
-        strcat(query, dbh->db_fields[i].db_name);
+        strcat(query, myfields[i].name /* dbh->db_fields[i].db_name */);
         strcat(query, "`\0");
         switch (dbh->db_fields[i].db_type) {
             case 'C':
@@ -300,10 +329,10 @@ void do_create(MYSQL *SQLsock, char *table, dbhead *dbh, char *charset) {
     }
 
     if (verbose > 2) {
-        printf("Sending create-clause\n");
-        printf("%s\n", query);
-        printf("fields in dbh %d, allocated mem for query %d, query size %d\n",
-                dbh->db_nfields, (dbh->db_nfields * 60) + 29 + strlen(table), strlen(query));
+        fprintf(stderr, "Sending create-clause\n");
+        fprintf(stderr, "%s\n", query);
+        fprintf(stderr, "fields in dbh %d, allocated mem for query %lu, actual query size %lu\n",
+                dbh->db_nfields, qsize, strlen(query));
     }
 
     if (mysql_query(SQLsock, query) != 0) {
@@ -340,7 +369,7 @@ void do_inserts(MYSQL *SQLsock, char *table, dbhead *dbh) {
         else {
             nc = atoi(fgets(str, 256, fconv));
             if (verbose > 2)
-                printf("Using conversion table '%s' with %d entries\n", convert, nc);
+                fprintf(stderr, "Using conversion table '%s' with %d entries\n", convert, nc);
             if ((cvt = (char *) malloc(nc * 2 + 1)) == NULL) {
                 fprintf(stderr, "Memory allocation error in do_inserts (cvt)\n");
                 mysql_close(SQLsock);
@@ -555,8 +584,10 @@ void do_inserts(MYSQL *SQLsock, char *table, dbhead *dbh) {
 int main(int argc, char **argv) {
     int i;
     MYSQL *SQLsock, mysql;
+    MYSQL_FIELD *myfields;
     extern int optind;
     extern char *optarg;
+    size_t qsize;
     char *query;
     dbhead *dbh;
     char *charset;
@@ -721,7 +752,11 @@ int main(int argc, char **argv) {
 
     /* Substitute field names */
     do_onlyfields(flist, dbh);
-    do_substitute(subarg, dbh);
+
+    /* Make MYSQL_FIELD's from the dbh values (so that MySQL is not subject to the same field-name-length */
+    do_prep_mysql(dbh, &myfields);
+
+    do_substitute(subarg, dbh, myfields);
 
     if (!create) {
         if (!check_table(SQLsock, table)) {
@@ -746,7 +781,7 @@ int main(int argc, char **argv) {
 
         /* Build a CREATE-clause
          */
-        do_create(SQLsock, table, dbh, charset);
+        do_create(SQLsock, table, dbh, charset, myfields);
     }
 
     /* Build an INSERT-clause
