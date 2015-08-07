@@ -77,12 +77,12 @@ int check_table(MYSQL *sock, char *table) {
 }
 
 void usage(void) {
-    printf("dbf2mysql %s\n", VERSION);
-    printf("usage: dbf2mysql [-h hostname] [-d dbase] [-t table] [-p primary key]\n");
-    printf("                 [-o field[,field]] [-s oldname=newname[,oldname=newname]]\n");
-    printf("                 [-i field[,field]] [-c] [-f] [-F] [-n] [-r] [-u|-l] \n");
-    printf("                 [-v[v]] [-x] [-q]  [-P password] [-U user] [-C charset]\n");
-    printf("                 dbf-file\n");
+    fprintf(stderr, "dbf2mysql %s\n", VERSION);
+    fprintf(stderr, "usage: dbf2mysql [-h hostname] [-d dbase] [-t table] [-p primary key]\n");
+    fprintf(stderr, "                 [-o field[,field]] [-s oldname=newname[,oldname=newname]]\n");
+    fprintf(stderr, "                 [-i field[,field]] [-c] [-f] [-F] [-n] [-r] [-u|-l] \n");
+    fprintf(stderr, "                 [-v[v]] [-x] [-q]  [-P password] [-U user] [-C charset]\n");
+    fprintf(stderr, "                 dbf-file\n");
 }
 
 /* patch by Mindaugas Riauba <minde@pub.osf.lt> */
@@ -96,7 +96,7 @@ void do_onlyfields(char *flist, dbhead *dbh) {
     if (flist == NULL) return;
 
     if (verbose > 2)
-        printf("Removing not specified fields\n");
+        fprintf(stderr, "Removing not specified fields\n");
 
     if ((flist2 = malloc(strlen(flist) * sizeof (char) + 1)) == NULL) {
         fprintf(stderr, "Memory allocation error in function do_onlyfields\n");
@@ -105,7 +105,7 @@ void do_onlyfields(char *flist, dbhead *dbh) {
     }
 
     if (verbose > 2)
-        printf("Used fields: ");
+        fprintf(stderr, "Used fields: ");
     for (i = 0; i < dbh -> db_nfields; i++) {
         strcpy(flist2, flist);
         match = 0;
@@ -113,13 +113,13 @@ void do_onlyfields(char *flist, dbhead *dbh) {
             if (strcasecmp(s, dbh -> db_fields[i].db_name) == 0) {
                 match = 1;
                 if (verbose > 1)
-                    printf("%s", s);
+                    fprintf(stderr, "%s", s);
             }
         }
         if (match == 0) dbh -> db_fields[i].db_name[0] = '\0';
     }
     if (verbose > 2)
-        printf("\n");
+        fprintf(stderr, "\n");
     free(flist2);
 } /* do_onlyfields */
 
@@ -136,7 +136,7 @@ void do_substitute(char *subarg, dbhead *dbh) {
     if (subarg == NULL) return;
 
     if (verbose > 1) {
-        printf("Substituting new field names\n");
+        fprintf(stderr, "Substituting new field names\n");
     }
     /* use strstr instead of strtok because of possible empty tokens */
     oldname = subarg;
@@ -168,7 +168,7 @@ void do_substitute(char *subarg, dbhead *dbh) {
             }
         }
         if (bad) {
-            printf("Warning: old field name %s not found\n",
+            fprintf(stderr, "Warning: old field name %s not found\n",
                     oldname);
         }
         oldname = p;
@@ -598,7 +598,7 @@ int main(int argc, char **argv) {
             case 'u':
                 if (lower) {
                     usage();
-                    printf("Can't use -u and -l at the same time!\n");
+                    fprintf(stderr, "Can't use -u and -l at the same time!\n");
                     exit(1);
                 }
                 upper = 1;
@@ -635,11 +635,11 @@ int main(int argc, char **argv) {
                 break;
             case ':':
                 usage();
-                printf("missing argument!\n");
+                fprintf(stderr, "missing argument!\n");
                 exit(1);
             case '?':
                 usage();
-                printf("unknown argument: %s\n", argv[0]);
+                fprintf(stderr, "unknown argument: %s\n", argv[0]);
                 exit(1);
             default:
                 break;
@@ -655,7 +655,7 @@ int main(int argc, char **argv) {
     }
 
     if (verbose > 2) {
-        printf("Opening dbf-file %s\n", argv[0]);
+        fprintf(stderr, "Opening dbf-file %s\n", argv[0]);
     }
 
     if ((dbh = dbf_open(argv[0], O_RDONLY)) == (dbhead *) - 1) {
@@ -664,18 +664,18 @@ int main(int argc, char **argv) {
     }
 
     if (verbose) {
-        printf("dbf-file: %s - %s, MySQL-dbase: %s, MySQL-table: %s\n",
+        fprintf(stderr, "dbf-file: %s - %s, MySQL-dbase: %s, MySQL-table: %s\n",
                 argv[0],
                 dbh->db_description,
                 dbase,
                 table);
-        printf("Number of records: %ld\n", dbh->db_records);
+        fprintf(stderr, "Number of DBF records: %ld\n", dbh->db_records);
     }
     if (verbose > 1) {
-        printf("Name\t\t Length\tDisplay\t Type\n");
-        printf("-------------------------------------\n");
+        fprintf(stderr, "Name\t\t Length\tDisplay\t Type\n");
+        fprintf(stderr, "-------------------------------------\n");
         for (i = 0; i < dbh->db_nfields; i++) {
-            printf("%-12s\t%7d\t%5d\t%3c\n",
+            fprintf(stderr, "%-12s\t%7d\t%5d\t%3c\n",
                     dbh->db_fields[i].db_name,
                     dbh->db_fields[i].db_flen,
                     dbh->db_fields[i].db_dec,
@@ -684,7 +684,7 @@ int main(int argc, char **argv) {
     }
 
     if (verbose > 2) {
-        printf("Making connection to MySQL-server\n");
+        fprintf(stderr, "Making connection to MySQL-server\n");
     }
 
     // Init mysql
@@ -703,7 +703,7 @@ int main(int argc, char **argv) {
     }
 
     if (verbose > 2) {
-        printf("Selecting database '%s'\n", dbase);
+        fprintf(stderr, "Selecting database '%s'\n", dbase);
     }
 
     if ((mysql_select_db(SQLsock, dbase)) == -1) {
@@ -715,7 +715,7 @@ int main(int argc, char **argv) {
     }
 
     if (charset && !mysql_set_character_set(&mysql, charset)) {
-        printf("New client character set: %s\n",
+        fprintf(stderr, "New client character set: %s\n",
                 mysql_character_set_name(&mysql));
     }
 
@@ -725,7 +725,7 @@ int main(int argc, char **argv) {
 
     if (!create) {
         if (!check_table(SQLsock, table)) {
-            printf("Table does not exist!\n");
+            fprintf(stderr, "Table does not exist!\n");
             exit(1);
         }
     } else {
