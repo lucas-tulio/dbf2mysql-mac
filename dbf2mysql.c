@@ -777,17 +777,17 @@ int main(int argc, char **argv) {
         }
     } else {
         if (verbose > 2) {
-            printf("Dropping original table (if one exists)\n");
+            fprintf(stderr, "Dropping original table (if one exists)\n");
         }
-
-        if (!(query = (char *) malloc(12 + strlen(table)))) {
-            printf("Memory-allocation error in main (drop)!\n");
+        qsize = 15 + strlen(table);
+        if (!(query = (char *) malloc(qsize))) {
+            fprintf(stderr, "Memory-allocation error in main (drop)!\n");
             mysql_close(SQLsock);
             dbf_close(&dbh);
             exit(1);
         }
 
-        sprintf(query, "DROP TABLE `%s`", table);
+        snprintf(query, qsize, "DROP TABLE `%s`", table);
         mysql_query(SQLsock, query);
         free(query);
 
@@ -801,11 +801,17 @@ int main(int argc, char **argv) {
     if (create < 2)
         do_inserts(SQLsock, table, dbh);
 
-    if (verbose > 2) {
-        printf("Closing up....\n");
-    }
+    if (verbose > 2) fprintf(stderr, "Closing up....\n");
 
+    if (verbose > 2) fprintf(stderr, "  mysql ...");
     mysql_close(SQLsock);
+    if (verbose > 2) fprintf(stderr, " closed\n");
+
+    if (verbose > 2) fprintf(stderr, "  dbf ...");
     dbf_close(&dbh);
+    if (verbose > 2) fprintf(stderr, " closed\n");
+
+    if (verbose > 2) fprintf(stderr, "done.\n");
+
     exit(0);
 }
