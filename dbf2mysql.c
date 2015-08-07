@@ -354,6 +354,7 @@ void do_inserts(MYSQL *SQLsock, char *table, dbhead *dbh) {
     char *query, *vpos, *pos;
     char str[257], *cvt = NULL, *s;
     u_long val_len = 0;
+    char datafile_template[] = "/tmp/d2my.XXXXX";
     char *datafile = NULL;
     FILE *fconv, *tempfile = NULL;
     int quote_field;
@@ -416,12 +417,18 @@ void do_inserts(MYSQL *SQLsock, char *table, dbhead *dbh) {
         if (express)
         strcat(query, "NULL,NULL,");
     else /* if specified -q create file for 'LOAD DATA' */ {
-        datafile = tempnam("/tmp", "d2my");
-        tempfile = fdopen(open(datafile, O_WRONLY | O_CREAT | O_EXCL,
-                0600), "wt");
-        if (tempfile == NULL || datafile == NULL) {
+        /* datafile = tempnam("/tmp", "d2my"); */
+        datafile = mktemp(datafile_template);
+        if (datafile == NULL) {
+          fprintf(stderr, "Cannot create temp file for writing\n");
+          return;
+        } else {
+          tempfile = fdopen(open(datafile, O_WRONLY | O_CREAT | O_EXCL,
+                                 0600), "wt");
+          if (tempfile == NULL || datafile == NULL) {
             fprintf(stderr, "Cannot open file '%s' for writing\n", datafile);
             return;
+          }
         }
         query[0] = '\0';
     }
