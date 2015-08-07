@@ -28,7 +28,7 @@ static int dbf_get_memo_data(dbhead *dbh, field *fldp,  u_long blknum);
 void cp866_cp1251( char* s ) {
     char *c;
     for( c=s; *c!=0; ++c ) {
-        if( *c>-129 && *c<-80 )
+        if( *c>=-128 && *c<-80 )
             *c += 64;
         else if( *c>-33 && *c<-16 )
             *c += 16;
@@ -604,7 +604,7 @@ int dbf_get_record(dbhead *dbh, field *fields,  u_long rec)
 
 	  case 'Y':		/* Currency 8 byte field - ???Endian Alert??? */
 	    memcpy(&int8val, dbffield, sizeof(int8val));
-	    snprintf(fields[t].db_contents, fields[t].db_blen,  "%0*Ld",
+	    snprintf(fields[t].db_contents, fields[t].db_blen,  "%0*lld",
 		     fields[t].db_dec+1, int8val);
 	    fields[t].db_contents[fields[t].db_blen-1] = '\0';
 	    end = fields[t].db_contents + strlen(fields[t].db_contents) + 1;

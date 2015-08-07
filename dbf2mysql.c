@@ -347,10 +347,10 @@ void do_inserts(MYSQL *SQLsock, char *table, dbhead *dbh) {
                 dbf_close(&dbh);
                 exit(1);
             }
-            for (i = 0, fgets(str, 256, fconv); (i < nc * 2) && (str != NULL); i++) {
+            for (i = 0, s = fgets(str, 256, fconv); (i < nc * 2) && (s != NULL); i++) {
                 cvt[i++] = atoi(strtok(str, " \t"));
                 cvt[i] = atoi(strtok(NULL, " \t"));
-                fgets(str, 256, fconv);
+                s = fgets(str, 256, fconv);
             }
             cvt[i] = '\0';
         }
