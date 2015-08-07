@@ -631,6 +631,11 @@ int main(int argc, char **argv) {
                 create++;
                 break;
             case 'l':
+                if (upper) {
+                    usage();
+                    fprintf(stderr, "Can't use -u and -l at the same time!\n");
+                    exit(1);
+                }
                 lower = 1;
                 break;
             case 'u':
