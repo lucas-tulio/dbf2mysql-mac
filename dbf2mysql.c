@@ -350,6 +350,7 @@ void do_create(MYSQL *SQLsock, char *table, dbhead *dbh, char *charset, MYSQL_FI
 /* Patched by GLC to fix quick mode Numeric fields */
 void do_inserts(MYSQL *SQLsock, char *table, dbhead *dbh) {
     int result, i, j, nc = 0, h;
+    int records = 0;
     field *fields;
     char *query, *vpos, *pos;
     char str[257], *cvt = NULL, *s;
@@ -387,7 +388,7 @@ void do_inserts(MYSQL *SQLsock, char *table, dbhead *dbh) {
     }
 
     if (verbose > 2) {
-        printf("Inserting records\n");
+        fprintf(stderr, "Inserting records\n");
     }
 
     for (i = 0; i < dbh->db_nfields; i++) {
@@ -492,7 +493,7 @@ void do_inserts(MYSQL *SQLsock, char *table, dbhead *dbh) {
                     *vpos++ = *pos;
                     val_used++;
                     if (val_used >= val_len) {
-                        //			int	newsiz = (((val_used + strlen(pos) + VAL_EXTRA + base_pos + 4095)/4096)+1)*4096-16;
+                        // int newsiz = (((val_used + strlen(pos) + VAL_EXTRA + base_pos + 4095)/4096)+1)*4096-16;
                         int newsiz = base_pos + val_used + strlen(pos) + VAL_EXTRA;
                         void *tmpptr = realloc(query, newsiz);
                         if (tmpptr == NULL) {
@@ -533,17 +534,18 @@ void do_inserts(MYSQL *SQLsock, char *table, dbhead *dbh) {
                 vpos[1] = 0; /* End of query */
             } else
                 vpos[0] = '\0';
-            if ((verbose == 3) && ((i % 100) == 0)) {
-                printf("Inserting record %d\n", i);
+            records += 1;
+            if ((verbose == 3) && ((records % 100) == 0)) {
+                fprintf(stderr, "Inserting record %d\n", records);
             }
             if (verbose > 3) {
-                printf("Record %4d: %s\n", i, query);
+                fprintf(stderr, "Record %4d: %s\n", records, query);
             }
 
             if (!quick) {
                 if (mysql_query(SQLsock, query) == -1) {
                     fprintf(stderr,
-                            "Error sending INSERT in record %04d\n", i);
+                            "Error sending INSERT in record %d (DBF: %04d)\n", records, i);
                     fprintf(stderr,
                             "Detailed report: %s\n",
                             mysql_error(SQLsock));
@@ -558,6 +560,9 @@ void do_inserts(MYSQL *SQLsock, char *table, dbhead *dbh) {
                     fprintf(tempfile, "%s\n", query);
             }
         }
+    }
+    if (verbose) {
+      fprintf(stderr, "Inserted %d MySQL records\n", records);
     }
 
     dbf_free_record(dbh, fields);
