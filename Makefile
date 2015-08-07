@@ -76,7 +76,7 @@ dbf2mysql.o: dbf2mysql.c dbf.h
 mysql2dbf.o: mysql2dbf.c dbf.h
 	$(CC) $(CFLAGS) -DVERSION=\"$(VERSION)\" $(MYSQLINC) -c -o $@ mysql2dbf.c
 
-install: dbf2mysql
+install: dbf2mysql mysql2dbf
 	$(INSTALL) -m 0755 -s dbf2mysql $(INSTALLDIR)
 	$(INSTALL) -m 0755 -s mysql2dbf $(INSTALLDIR)
 
