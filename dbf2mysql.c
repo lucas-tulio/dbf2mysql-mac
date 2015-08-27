@@ -786,9 +786,13 @@ int main(int argc, char **argv) {
         exit(1);
     }
 
-    if (charset && !mysql_set_character_set(&mysql, charset)) {
-        fprintf(stderr, "New client character set: %s\n",
-                mysql_character_set_name(&mysql));
+    if (charset) {
+        if (mysql_set_character_set(&mysql, charset)) {
+            fprintf(stderr, "Error setting client character set: %s\n", charset);
+        } else if (verbose > 2 && strcmp(charset, mysql_character_set_name(&mysql))) {
+            fprintf(stderr, "New client character set: %s\n",
+                    mysql_character_set_name(&mysql));
+        }
     }
 
     /* Substitute field names */
