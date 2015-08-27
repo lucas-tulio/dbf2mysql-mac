@@ -43,7 +43,7 @@ void do_substitute(char *subarg, dbhead *dbh, MYSQL_FIELD *myfields);
 void strtoupper(char *string);
 void strtolower(char *string);
 void do_create(MYSQL *, char*, dbhead*, char *charset, MYSQL_FIELD *);
-void do_inserts(MYSQL *, char*, dbhead*);
+void do_inserts(MYSQL *, char*, dbhead*, MYSQL_FIELD *);
 int check_table(MYSQL *, char*);
 void usage(void);
 
@@ -348,19 +348,22 @@ void do_create(MYSQL *SQLsock, char *table, dbhead *dbh, char *charset, MYSQL_FI
 }
 
 /* Patched by GLC to fix quick mode Numeric fields */
-void do_inserts(MYSQL *SQLsock, char *table, dbhead *dbh) {
+void do_inserts(MYSQL *SQLsock, char *table, dbhead *dbh, MYSQL_FIELD *myfields) {
     int result, i, j, nc = 0, h;
     int records = 0;
     field *fields;
     char *query, *vpos, *pos;
     char str[257], *cvt = NULL, *s;
     u_long val_len = 0;
+    u_long col_len = 0;           /* sum of length of column names */
     char datafile_template[] = "/tmp/d2my.XXXXX";
     char *datafile = NULL;
     FILE *fconv, *tempfile = NULL;
     int quote_field;
     u_long val_used;
     int base_pos;
+    u_long one_col, col_max = 0;
+    char sep, *namebuf;
 
     /* Max Number of characters that can be stored before checking buffer size */
 #define VAL_EXTRA 16
@@ -392,6 +395,10 @@ void do_inserts(MYSQL *SQLsock, char *table, dbhead *dbh) {
     }
 
     for (i = 0; i < dbh->db_nfields; i++) {
+        if (!(one_col = strlen(myfields[i].name)))
+            continue;
+        col_len += one_col;
+        if (one_col > col_max) col_max = one_col;
         switch (dbh->db_fields[i].db_type) {
         case 'M':
         case 'G':
@@ -405,15 +412,30 @@ void do_inserts(MYSQL *SQLsock, char *table, dbhead *dbh) {
         }
     }
 
-    if (!(query = (char *) malloc((express * 10) + 26 + strlen(table) + val_len + VAL_EXTRA))) {
+    /* Slightly over-estimated because it adds 3*(number of unused fields) to the size */
+    if (!(query = (char *) malloc((express * 10) + 14 + strlen(table)   /* "INSERT INTO_`" + table + "`"  */
+                                  + 2 + (3 * dbh->db_nfields) + col_len /* "_(" + nfields*("`" + "`[,)]") +∑strlen(col) */
+                                  + 11 + val_len + VAL_EXTRA))          /* "_VALUES_(" + ∑val(col) + ")\0" */
+        || !(namebuf = (char *) malloc(4+col_max))                      /* "[(,]`" + col_max + "`\0" */
+        ) {
         fprintf(stderr,
                 "Memory allocation error in function do_inserts (query)\n");
         mysql_close(SQLsock);
         dbf_close(&dbh);
+        if (query) free(query);
         exit(1);
     }
     if (!quick) {
-        sprintf(query, "INSERT INTO `%s` VALUES (", table);
+        sprintf(query, "INSERT INTO `%s` ", table);
+        sep = '(';
+        for (h = 0; h < dbh->db_nfields; h++) {
+            if (strlen(myfields[h].name)) {
+                snprintf(namebuf, 4+col_max, "%c`%s`", sep, myfields[h].name);
+                strncat(query, namebuf, 4+col_max); /* could use strlcat(query, namebuf, big_number_from_above) */
+                sep = ',';
+            }
+        }
+        strcat(query, ") VALUES (");
     } else {
         if (express)
             strcat(query, "NULL,NULL,");
@@ -434,6 +456,7 @@ void do_inserts(MYSQL *SQLsock, char *table, dbhead *dbh) {
             query[0] = '\0';
         }
     }
+    free(namebuf);
     base_pos = strlen(query);
 
     if ((fields = dbf_build_record(dbh)) == (field *) DBF_ERROR) {
@@ -805,7 +828,7 @@ int main(int argc, char **argv) {
     /* Build an INSERT-clause
      */
     if (create < 2)
-        do_inserts(SQLsock, table, dbh);
+        do_inserts(SQLsock, table, dbh, myfields);
 
     if (verbose > 2) fprintf(stderr, "Closing up....\n");
 
