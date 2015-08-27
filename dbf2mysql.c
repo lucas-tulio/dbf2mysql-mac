@@ -8,8 +8,8 @@
    Added Date and Boolean field conversions.
    Fixxed Quick mode insert for blank Numeric fields
    Modified to use -x flag to add _rec and _timestamp fields to start of record.
-      ( only those lines immediately affect by if(express) (and getopt) )
- */
+   ( only those lines immediately affect by if(express) (and getopt) )
+*/
 
 #include <stdio.h>
 #include <sys/types.h>
@@ -125,21 +125,21 @@ void do_onlyfields(char *flist, dbhead *dbh) {
 } /* do_onlyfields */
 
 void do_prep_mysql(dbhead *dbh, MYSQL_FIELD **myfields) {
-  int i;
-  MYSQL_FIELD *this_field;
+    int i;
+    MYSQL_FIELD *this_field;
 
-  *myfields = (MYSQL_FIELD *) calloc(dbh->db_nfields, sizeof(MYSQL_FIELD));
+    *myfields = (MYSQL_FIELD *) calloc(dbh->db_nfields, sizeof(MYSQL_FIELD));
 
-  if (verbose > 2) {
-    fprintf(stderr, "Prep MySQL field names\n");
-  }
+    if (verbose > 2) {
+        fprintf(stderr, "Prep MySQL field names\n");
+    }
 
-  for (i = 0; i < dbh->db_nfields; i++) {
-    this_field = (*myfields) + i;
-    this_field->name = dbh->db_fields[i].db_name;
-    this_field->type = dbh->db_fields[i].db_type; /* not a true conversion */
-    this_field->length = dbh->db_fields[i].db_flen;
-  }
+    for (i = 0; i < dbh->db_nfields; i++) {
+        this_field = (*myfields) + i;
+        this_field->name = dbh->db_fields[i].db_name;
+        this_field->type = dbh->db_fields[i].db_type; /* not a true conversion */
+        this_field->length = dbh->db_fields[i].db_flen;
+    }
 }
 
 /* patch submitted by Jeffrey Y. Sue <jysue@aloha.net> */
@@ -180,14 +180,14 @@ void do_substitute(char *subarg, dbhead *dbh, MYSQL_FIELD *myfields) {
                 bad = 0;
                 myfields[i].name = newname;
                 if (newname[0] == '\0') { /* do_inserts() looks at the db_name to use/skip */
-                  dbh->db_fields[i].db_name[0] = '\0';
+                    dbh->db_fields[i].db_name[0] = '\0';
                 }
                 if (verbose > 1) {
                     fprintf(stderr, "Substitute old:%-*s", DBF_NAMELEN, oldname);
                     if (strlen(newname)) {
-                      fprintf(stderr, "new:%s\n", newname);
+                        fprintf(stderr, "new:%s\n", newname);
                     } else {
-                      fprintf(stderr, "(skip)\n");
+                        fprintf(stderr, "(skip)\n");
                     }
                 }
                 break;
@@ -214,7 +214,7 @@ void do_create(MYSQL *SQLsock, char *table, dbhead *dbh, char *charset, MYSQL_FI
     }
     qsize = (express * 100) + (dbh->db_nfields * 60) + 29 + strlen(table);
     for (i = 0; i < dbh->db_nfields; i++) {
-      qsize += strlen(myfields[i].name) + 1;
+        qsize += strlen(myfields[i].name) + 1;
     }
     if (!(query = (char *) malloc(qsize))) {
         fprintf(stderr, "Memory allocation error in function do_create\n");
@@ -226,7 +226,7 @@ void do_create(MYSQL *SQLsock, char *table, dbhead *dbh, char *charset, MYSQL_FI
     sprintf(query, "CREATE TABLE `%s` (", table);
     if (express) {
         strcat(query,
-                "_rec int(10) unsigned DEFAULT '0' NOT NULL auto_increment PRIMARY KEY,\n");
+               "_rec int(10) unsigned DEFAULT '0' NOT NULL auto_increment PRIMARY KEY,\n");
         strcat(query, "_timestamp timestamp(14),\n");
     }
     first_done = 0;
@@ -246,64 +246,64 @@ void do_create(MYSQL *SQLsock, char *table, dbhead *dbh, char *charset, MYSQL_FI
         strcat(query, myfields[i].name /* dbh->db_fields[i].db_name */);
         strcat(query, "`\0");
         switch (dbh->db_fields[i].db_type) {
-            case 'C':
-                if (var_chars)
-                    strcat(query, " varchar");
-                else
-                    strcat(query, " char");
-                sprintf(t, "(%d)", dbh->db_fields[i].db_flen);
-                strcat(query, t);
-                break;
+        case 'C':
+            if (var_chars)
+                strcat(query, " varchar");
+            else
+                strcat(query, " char");
+            sprintf(t, "(%d)", dbh->db_fields[i].db_flen);
+            strcat(query, t);
+            break;
 
-            case 'N':
-                if (dbh->db_fields[i].db_dec != 0) {
-                    strcat(query, " real"); /* decimal the better choice? */
-                } else {
-                    strcat(query, " int");
-                }
-                break;
-
-            case 'L':
-                /* strcat(query, " char (1)"); */
-                strcat(query, " enum('F','T')");
-                break;
-
-            case 'D':
-                strcat(query, " date");
-                break;
-
-            case 'M':
-                strcat(query, " text");
-                break;
-
-            case 'F':
-                strcat(query, " double");
-                break;
-
-            case 'B': /* ?Depends on DB vs FoxPro? Former is memo, latter is Binary */
-                sprintf(t, " decimal(15,%d)", dbh->db_fields[i].db_dec);
-                strcat(query, t);
-                break;
-
-            case 'G':
-                strcat(query, " blob");
-                break;
-
-            case 'P':
-                strcat(query, " blob");
-                break;
-
-            case 'Y':
-                strcat(query, " decimal(21,4)");
-                break;
-
-            case 'T':
-                strcat(query, " datetime");
-                break;
-
-            case 'I':
+        case 'N':
+            if (dbh->db_fields[i].db_dec != 0) {
+                strcat(query, " real"); /* decimal the better choice? */
+            } else {
                 strcat(query, " int");
-                break;
+            }
+            break;
+
+        case 'L':
+            /* strcat(query, " char (1)"); */
+            strcat(query, " enum('F','T')");
+            break;
+
+        case 'D':
+            strcat(query, " date");
+            break;
+
+        case 'M':
+            strcat(query, " text");
+            break;
+
+        case 'F':
+            strcat(query, " double");
+            break;
+
+        case 'B': /* ?Depends on DB vs FoxPro? Former is memo, latter is Binary */
+            sprintf(t, " decimal(15,%d)", dbh->db_fields[i].db_dec);
+            strcat(query, t);
+            break;
+
+        case 'G':
+            strcat(query, " blob");
+            break;
+
+        case 'P':
+            strcat(query, " blob");
+            break;
+
+        case 'Y':
+            strcat(query, " decimal(21,4)");
+            break;
+
+        case 'T':
+            strcat(query, " datetime");
+            break;
+
+        case 'I':
+            strcat(query, " int");
+            break;
 
         }
         if (strcmp(dbh->db_fields[i].db_name, primary) == 0) {
@@ -393,15 +393,15 @@ void do_inserts(MYSQL *SQLsock, char *table, dbhead *dbh) {
 
     for (i = 0; i < dbh->db_nfields; i++) {
         switch (dbh->db_fields[i].db_type) {
-            case 'M':
-            case 'G':
-                val_len += 2048;
-                break;
-            case 'T':
-                val_len += 23;
-                break;
-            default:
-                val_len += dbh->db_fields[i].db_flen * 2 + 3;
+        case 'M':
+        case 'G':
+            val_len += 2048;
+            break;
+        case 'T':
+            val_len += 23;
+            break;
+        default:
+            val_len += dbh->db_fields[i].db_flen * 2 + 3;
         }
     }
 
@@ -414,24 +414,25 @@ void do_inserts(MYSQL *SQLsock, char *table, dbhead *dbh) {
     }
     if (!quick) {
         sprintf(query, "INSERT INTO `%s` VALUES (", table);
-    } else
+    } else {
         if (express)
-        strcat(query, "NULL,NULL,");
-    else /* if specified -q create file for 'LOAD DATA' */ {
-        /* datafile = tempnam("/tmp", "d2my"); */
-        datafile = mktemp(datafile_template);
-        if (datafile == NULL) {
-          fprintf(stderr, "Cannot create temp file for writing\n");
-          return;
-        } else {
-          tempfile = fdopen(open(datafile, O_WRONLY | O_CREAT | O_EXCL,
-                                 0600), "wt");
-          if (tempfile == NULL || datafile == NULL) {
-            fprintf(stderr, "Cannot open file '%s' for writing\n", datafile);
-            return;
-          }
+            strcat(query, "NULL,NULL,");
+        else /* if specified -q create file for 'LOAD DATA' */ {
+            /* datafile = tempnam("/tmp", "d2my"); */
+            datafile = mktemp(datafile_template);
+            if (datafile == NULL) {
+                fprintf(stderr, "Cannot create temp file for writing\n");
+                return;
+            } else {
+                tempfile = fdopen(open(datafile, O_WRONLY | O_CREAT | O_EXCL,
+                                       0600), "wt");
+                if (tempfile == NULL || datafile == NULL) {
+                    fprintf(stderr, "Cannot open file '%s' for writing\n", datafile);
+                    return;
+                }
+            }
+            query[0] = '\0';
         }
-        query[0] = '\0';
     }
     base_pos = strlen(query);
 
@@ -450,10 +451,10 @@ void do_inserts(MYSQL *SQLsock, char *table, dbhead *dbh) {
                 if (!strlen(fields[h].db_name))
                     continue;
                 if (fields[h].db_type == 'N' ||
-                        fields[h].db_type == 'F' ||
-                        fields[h].db_type == 'B' ||
-                        fields[h].db_type == 'Y' ||
-                        fields[h].db_type == 'I')
+                    fields[h].db_type == 'F' ||
+                    fields[h].db_type == 'B' ||
+                    fields[h].db_type == 'Y' ||
+                    fields[h].db_type == 'I')
                     quote_field = 0;
                 else
                     quote_field = 1;
@@ -470,7 +471,7 @@ void do_inserts(MYSQL *SQLsock, char *table, dbhead *dbh) {
 
                 if (trim && quote_field) /* trim leading spaces */ {
                     for (pos = fields[h].db_contents; isspace(*pos) && (*pos != '\0');
-                            pos++);
+                         pos++);
                     memmove(fields[h].db_contents, pos, strlen(pos) + 1);
                 }
                 if ((nc > 0) && (fields[h].db_type == 'C')) {
@@ -562,7 +563,7 @@ void do_inserts(MYSQL *SQLsock, char *table, dbhead *dbh) {
         }
     }
     if (verbose) {
-      fprintf(stderr, "Inserted %d MySQL records\n", records);
+        fprintf(stderr, "Inserted %d MySQL records\n", records);
     }
 
     dbf_free_record(dbh, fields);
@@ -608,89 +609,89 @@ int main(int argc, char **argv) {
 
     while ((i = getopt(argc, argv, "xqfFrne:lucvi:h:p:d:t:s:o:U:P:C:")) != EOF) {
         switch (i) {
-            case 'P':
-                pass = (char *) strdup(optarg);
-                break;
-            case 'U':
-                user = (char *) strdup(optarg);
-                break;
-            case 'x':
-                express = 1;
-                break;
-            case 'f':
-                fieldlow = 1;
-                break;
-            case 'F':
-                var_chars = 0;
-                break;
-            case 'r':
-                trim = 1;
-                break;
-            case 'n':
-                null_fields = 1;
-                break;
-            case 'v':
-                verbose++;
-                break;
-            case 'c':
-                create++;
-                break;
-            case 'l':
-                if (upper) {
-                    usage();
-                    fprintf(stderr, "Can't use -u and -l at the same time!\n");
-                    exit(1);
-                }
-                lower = 1;
-                break;
-            case 'u':
-                if (lower) {
-                    usage();
-                    fprintf(stderr, "Can't use -u and -l at the same time!\n");
-                    exit(1);
-                }
-                upper = 1;
-                break;
-            case 'e':
-                convert = (char *) strdup(optarg);
-                break;
-            case 'h':
-                host = (char *) strdup(optarg);
-                break;
-            case 'q':
-                quick = 1;
-                break;
-            case 'p':
-                strncpy(primary, optarg, 11);
-                break;
-            case 'd':
-                dbase = (char *) strdup(optarg);
-                break;
-            case 't':
-                table = (char *) strdup(optarg);
-                break;
-            case 'i':
-                indexes = (char *) strdup(optarg);
-                break;
-            case 's':
-                subarg = (char *) strdup(optarg);
-                break;
-            case 'o':
-                flist = (char *) strdup(optarg);
-                break;
-            case 'C':
-                charset = (char *) strdup(optarg);
-                break;
-            case ':':
+        case 'P':
+            pass = (char *) strdup(optarg);
+            break;
+        case 'U':
+            user = (char *) strdup(optarg);
+            break;
+        case 'x':
+            express = 1;
+            break;
+        case 'f':
+            fieldlow = 1;
+            break;
+        case 'F':
+            var_chars = 0;
+            break;
+        case 'r':
+            trim = 1;
+            break;
+        case 'n':
+            null_fields = 1;
+            break;
+        case 'v':
+            verbose++;
+            break;
+        case 'c':
+            create++;
+            break;
+        case 'l':
+            if (upper) {
                 usage();
-                fprintf(stderr, "missing argument!\n");
+                fprintf(stderr, "Can't use -u and -l at the same time!\n");
                 exit(1);
-            case '?':
+            }
+            lower = 1;
+            break;
+        case 'u':
+            if (lower) {
                 usage();
-                fprintf(stderr, "unknown argument: %s\n", argv[0]);
+                fprintf(stderr, "Can't use -u and -l at the same time!\n");
                 exit(1);
-            default:
-                break;
+            }
+            upper = 1;
+            break;
+        case 'e':
+            convert = (char *) strdup(optarg);
+            break;
+        case 'h':
+            host = (char *) strdup(optarg);
+            break;
+        case 'q':
+            quick = 1;
+            break;
+        case 'p':
+            strncpy(primary, optarg, 11);
+            break;
+        case 'd':
+            dbase = (char *) strdup(optarg);
+            break;
+        case 't':
+            table = (char *) strdup(optarg);
+            break;
+        case 'i':
+            indexes = (char *) strdup(optarg);
+            break;
+        case 's':
+            subarg = (char *) strdup(optarg);
+            break;
+        case 'o':
+            flist = (char *) strdup(optarg);
+            break;
+        case 'C':
+            charset = (char *) strdup(optarg);
+            break;
+        case ':':
+            usage();
+            fprintf(stderr, "missing argument!\n");
+            exit(1);
+        case '?':
+            usage();
+            fprintf(stderr, "unknown argument: %s\n", argv[0]);
+            exit(1);
+        default:
+            break;
         }
     }
 
