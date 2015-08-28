@@ -829,7 +829,12 @@ int main(int argc, char **argv) {
         }
 
         snprintf(query, qsize, "DROP TABLE `%s`", table);
-        mysql_query(SQLsock, query);
+        if (mysql_query(SQLsock, query)) {
+            fprintf(stderr, "Error in query: %s\n", query);
+            mysql_close(SQLsock);
+            dbf_close(&dbh);
+            exit(1);
+        }
         free(query);
 
         /* Build a CREATE-clause
