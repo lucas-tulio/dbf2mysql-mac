@@ -364,9 +364,17 @@ void do_inserts(MYSQL *SQLsock, char *table, dbhead *dbh, MYSQL_FIELD *myfields)
     int base_pos;
     u_long one_col, col_max = 0;
     char sep, *namebuf;
+    char *ttyeol;
 
     /* Max Number of characters that can be stored before checking buffer size */
 #define VAL_EXTRA 16
+
+    if (verbose > 2) {
+        if (isatty(fileno(stderr)))
+            ttyeol = "\r";
+        else
+            ttyeol = "\n";
+    }
 
     if (convert != NULL) /* If specified conversion table */ {
         if ((fconv = fopen(convert, "rt")) == NULL)
@@ -560,7 +568,7 @@ void do_inserts(MYSQL *SQLsock, char *table, dbhead *dbh, MYSQL_FIELD *myfields)
                 vpos[0] = '\0';
             records += 1;
             if ((verbose == 3) && ((records % 100) == 0)) {
-                fprintf(stderr, "Inserting record %d\n", records);
+                fprintf(stderr, "Inserting record %d%s", records, ttyeol);
             }
             if (verbose > 3) {
                 fprintf(stderr, "Record %4d: %s\n", records, query);
