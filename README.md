@@ -234,7 +234,7 @@ dbf2msql-1.04:
 -   Added a check when reading in the field-descriptions for end-of-header. Could fix some problems. Patch from Aaron Kardell <akardell@aksoft.com>.
 -   Made numeric fields 10 long (4^32 has 10 chars....)
 
-dbf2msql-1.03 (never publically released):
+dbf2msql-1.03 (never publicly released):
 
 -   Changed `dbf.c` to use a standard buffer to read the record in, as opposed to allocating one everytime we call `dbf_get_record()`. This will save time in reading and writing records. With `dbf2msql` and `msql2dbf` you won't notice much difference, cos the most time-consuming action is the communication with _msqld_, however, when you use these routines for something else it should make a difference.
 
